@@ -8,8 +8,8 @@ on:
   push:
     branches: 
         - master
-        - Ram-USB-HID
-    paths: 'SSS2_Firmware/**'
+        - 'Ram-USB-HID'
+#     paths: 'SSS2_Firmware/**'
   pull_request:
     branches: [ master ]
 
