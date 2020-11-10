@@ -6,6 +6,9 @@ name: Build
 # events but only for the master branch
 on:
   push:
+    branches: 
+      - master
+      - Ram-USB-HID
     paths: 'SSS2_Firmware/**'
   pull_request:
     branches: [ master ]
