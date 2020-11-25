@@ -44,7 +44,7 @@
    TeensyID - https://github.com/sstaub/TeensyID
 */
 
-#define ENCODER_OPTIMIZE_INTERRUPTS
+//#define ENCODER_OPTIMIZE_INTERRUPTS
 
 #define USE_SPI1
 #include "src/MCP_CAN_lib/mcp_can.h"

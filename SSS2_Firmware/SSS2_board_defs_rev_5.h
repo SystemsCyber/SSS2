@@ -35,14 +35,14 @@
 */
 
 #define USE_SPI1
-#define SSS2_BOARD_REVISION 5
+#define SSS2_BOARD_REVISION 6
 #define J1708 Serial3
 #define LIN Serial2
 #define linRXpin 9
 
 String make = "SYNER";
 String model = "SSS2";
-String revision = "05a";
+String revision = "06a";
 String serial_number ="XXXX";
 String componentID = make + "*" + model + "-" + revision + "*" + serial_number + "*UNIVERSAL";
 
@@ -126,7 +126,7 @@ void setPinModes(){
     pinMode(CSCANPin,        OUTPUT);
     pinMode(CSconfigAPin,    OUTPUT);
     pinMode(CSconfigBPin,    OUTPUT);
-    pinMode(buttonPin, INPUT_PULLUP);
+    pinMode(buttonPin,        INPUT);
     pinMode(IH1Pin,          OUTPUT);
     pinMode(IH2Pin,          OUTPUT);
     pinMode(IL1Pin,          OUTPUT);
