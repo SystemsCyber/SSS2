@@ -49,7 +49,7 @@
 #define USE_SPI1
 #include "src/MCP_CAN_lib/mcp_can.h"
 #include <SPI.h>
-#include <Encoder.h>
+#include "src/Encoder/Encoder.h"
 #include "src/OneButton/OneButton.h"
 #include <i2c_t3.h>
 #include <EEPROM.h>
