@@ -30,6 +30,6 @@ jobs:
     - name: Install library dependencies
       run: pio lib -g install 1
     - name: Run PlatformIO
-      working-directory: ./SSS2-Firmware
+      working-directory: ./SSS2_Firmware
 
       run: pio run -e teensy36
