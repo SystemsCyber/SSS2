@@ -47,18 +47,18 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS
 
 #define USE_SPI1
-#include "src/MCP_CAN_lib/mcp_can.h"
+#include "mcp_can.h"
 #include <SPI.h>
 #include <Encoder.h>
-#include "src/OneButton/OneButton.h"
+#include <OneButton.h>
 #include <i2c_t3.h>
 #include <EEPROM.h>
-#include "src/FlexCAN/FlexCAN.h"
+#include <FlexCAN.h>
 #include <TimeLib.h>
-#include "src/TeensyID/TeensyID.h"
+#include <TeensyID.h>
 #include "FastCRC.h"
-#include "src/ArduinoThread/Thread.h"
-#include "src/ArduinoThread/ThreadController.h"
+#include <Thread.h>
+#include <ThreadController.h>
 #include "base64.hpp"
 
 

@@ -63,7 +63,7 @@ uint8_t usb_hid_rx_buffer[65];
 void setup() {
   SPI.begin();
   SPI1.begin();
-  while(!Serial); //Uncomment for testing
+  // while(!Serial); //Uncomment for testing
   status_buffer_1[0] = 0x01;
   status_buffer_2[0] = 0x02;
   status_buffer_3[0] = 0x03;
@@ -580,11 +580,13 @@ if (newKnob != currentKnob)
     ret_val = RawHID.send(status_buffer_1, timeout);
     
     status_buffer_2[61]++;
+    status_buffer_2[0]=0x02;
     uint16_t checksum2 = CRC16.ccitt(status_buffer_2, 62);
     memcpy(&status_buffer_2[62], &checksum2, 2);
     ret_val = RawHID.send(status_buffer_2, timeout);
 
     status_buffer_3[61]++;
+    status_buffer_3[0]=0x03;
     uint16_t checksum3 = CRC16.ccitt(status_buffer_3, 62);
     memcpy(&status_buffer_3[62], &checksum3, 2);
     ret_val = RawHID.send(status_buffer_3, timeout);
@@ -598,4 +600,6 @@ if (newKnob != currentKnob)
     
     RawHID.available();
   }
+ 
+  
 }
