@@ -34,7 +34,7 @@ jobs:
       run: pio lib -g install 1
     - name: Run PlatformIO
       run: pio run -e teensy36
-    - name: Archive code coverage results
+    - name: Archive Build Artifacts
       uses: actions/upload-artifact@v2
       with:
         name: build-hex-file
