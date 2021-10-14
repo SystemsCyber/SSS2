@@ -113,8 +113,8 @@ const uint8_t configExpanderAddr = 3 | 0x20;
  * End Default Settings
 */
 
-#define DEBUG_ON  1
-#define DEBUG_OFF 0
+#define DEBUG_ON  0
+#define DEBUG_OFF 1
 
 const uint16_t componentIDAddress = 1000;
 

@@ -234,7 +234,7 @@ void setup() {
 
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  put your main code here, to run repeatedly:
   if (request_timer >= 100){
     request_timer = 0;
     Serial.println(current_potexpander_pin);
@@ -249,4 +249,57 @@ void loop() {
     SPI.transfer(current_potexpander_pin & 0xFF); 
     digitalWrite(CSconfigAPin,HIGH);
   }
+
+
+  //  commandPrefix = "25";
+  // commandString = "0";
+  // fastSetSetting();
+  // delay(10);
+  // commandPrefix = "90";
+  // commandString = "0";
+  // fastSetSetting();
+  // delay(10);
+  // commandPrefix = "73";
+  // commandString = "0";
+  // fastSetSetting();
+  // delay(10);
+  // for(int i=0;i<=255;i++){
+  //     commandPrefix = "1";
+  //     commandString = String(i);
+  //     fastSetSetting();
+  //     delay(10);
+
+  // }
+  // for(int i=255;i>=0;i--){
+  //     commandPrefix = "1";
+  //     commandString = String(i);
+  //     fastSetSetting();
+  //     delay(10);
+  // }
+
+  // commandPrefix = "25";
+  // commandString = "1";
+  // fastSetSetting();
+  // delay(10);
+  //   for(int i=0;i<=255;i++){
+  //     commandPrefix = "1";
+  //     commandString = String(i);
+  //     fastSetSetting();
+  //     delay(10);
+
+  // }
+  // commandPrefix = "51";
+  // commandString = "3";
+  // fastSetSetting();
+  // delay(1000);
+  // commandPrefix = "51";
+  // commandString = "7";
+  // fastSetSetting();
+  // delay(10);
+  // for(int i=255;i>=0;i--){
+  //     commandPrefix = "1";
+  //     commandString = String(i);
+  //     fastSetSetting();
+  //     delay(10);
+  // }
 }
