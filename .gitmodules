@@ -1,0 +1,16 @@
+[submodule "SSS2_Firmware/src/FlexCAN"]
+	path = SSS2_Firmware/src/FlexCAN
+	url = https://github.com/SystemsCyber/FlexCAN_Library.git
+[submodule "SSS2_Firmware/src/base64_arduino"]
+	path = SSS2_Firmware/src/base64_arduino
+	url = https://github.com/Densaugeo/base64_arduino.git
+[submodule "SSS2_Firmware/src/Encoder"]
+	path = SSS2_Firmware/src/Encoder
+	url = https://github.com/PaulStoffregen/Encoder.git
+[submodule "SSS2_Firmware/src/i2c_t3"]
+	path = SSS2_Firmware/src/i2c_t3
+	url = https://github.com/nox771/i2c_t3.git
+[submodule "SSS2_Firmware/src/FastCRC"]
+	path = SSS2_Firmware/src/FastCRC
+	url = https://github.com/PaulStoffregen/FastCRC.git
+
