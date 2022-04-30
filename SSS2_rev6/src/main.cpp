@@ -1,4 +1,3 @@
-
 #define USB_RAWHID //Include this to get the stability
 #include <Arduino.h>
 #include <main.h>
