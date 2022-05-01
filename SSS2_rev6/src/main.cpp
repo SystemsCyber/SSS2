@@ -4,16 +4,15 @@
 
 
 
-
 bool green;
 
 void setup() {
-  // Don't put delay or Serial calls in the startup.
   // put your setup code here, to run once:
+  Serial.println("Starting Up...");
   setPinModes();
   start_can();
   start_button();
-  Serial.println("Starting Up...");
+  
 }
 
 void loop() {
