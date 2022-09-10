@@ -116,7 +116,6 @@
                 "C:/Users/jdaily/.platformio/packages/framework-arduinoteensy/libraries/ks0108",
                 "C:/Users/jdaily/.platformio/packages/framework-arduinoteensy/libraries/ssd1351",
                 "C:/Users/jdaily/.platformio/packages/framework-arduinoteensy/libraries/x10",
-                "C:/Users/jdaily/.platformio/packages/tool-unity",
                 ""
             ],
             "browse": {
@@ -230,12 +229,11 @@
                     "C:/Users/jdaily/.platformio/packages/framework-arduinoteensy/libraries/ks0108",
                     "C:/Users/jdaily/.platformio/packages/framework-arduinoteensy/libraries/ssd1351",
                     "C:/Users/jdaily/.platformio/packages/framework-arduinoteensy/libraries/x10",
-                    "C:/Users/jdaily/.platformio/packages/tool-unity",
                     ""
                 ]
             },
             "defines": [
-                "PLATFORMIO=50205",
+                "PLATFORMIO=60001",
                 "__MK66FX1M0__",
                 "ARDUINO_TEENSY36",
                 "USB_SERIAL",
