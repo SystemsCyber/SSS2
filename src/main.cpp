@@ -43,53 +43,186 @@
 #include "SSS2_board_defs_rev_5.h"
 #include "SSS2_functions.h"
 
-// J1939 static NAME and address for SSS2
-#define J1939_STATIC_NAME 0x81228409E9000001ULL
-#define J1939_STATIC_ADDRESS 128
+// J1939 static address for SSS2
+#define J1939_STATIC_ADDRESS 0x80
 #define J1939_PGN_PROPRIETARY_B 0x00EF00
 
-// J1939 Address Claim message (8 bytes)
-uint8_t j1939_name_bytes[8] = {
-  0x01, 0x00, 0x00, 0xE9, 0x09, 0x84, 0x22, 0x81 // LSB first (NAME = 0x81228409E9000001)
-};
+// J1939 service layer command bytes and status codes (PGN 0xEF00)
+#define J1939_SVC_SET_SETTING   0x01
+#define J1939_SVC_GET_SETTING   0x02
+#define J1939_SVC_RESPONSE      0x80
+#define J1939_SVC_STATUS_OK     0x00
+#define J1939_SVC_IGN_REQUIRED  0x01
+#define J1939_SVC_OUT_OF_RANGE  0x02
 
-// Helper: Compose 29-bit CAN ID for J1939 PGN and destination
-uint32_t j1939_make_id(uint32_t pgn, uint8_t dest) {
-  // Priority 6, Data Page 0, Extended Frame
-  return (6UL << 26) | (pgn << 8) | dest;
+// Can0: Vehicle System Instance = 1 (0b0001)
+static const uint64_t J1939_NAME_CAN0 = 0x81228409E9000001ULL;
+uint8_t j1939_name_can0[8] = { 0x01, 0x00, 0x00, 0xE9, 0x09, 0x84, 0x22, 0x81 };
+
+// Can1: Vehicle System Instance = 2 (0b0010)
+static const uint64_t J1939_NAME_CAN1 = 0x82228409E9000001ULL;
+uint8_t j1939_name_can1[8] = { 0x01, 0x00, 0x00, 0xE9, 0x09, 0x84, 0x22, 0x82 };
+
+// Helper: Compose J1939 29-bit ID for a PDU1 (addressed, PF < 240) message
+uint32_t j1939_pgn1_id(uint8_t priority, uint8_t dp, uint8_t pf, uint8_t dest, uint8_t sa) {
+  return ((uint32_t)(priority & 0x7) << 26) | ((uint32_t)(dp & 0x1) << 24)
+       | ((uint32_t)pf << 16) | ((uint32_t)dest << 8) | sa;
 }
 
-// Helper: Send J1939 Address Claim
-void j1939_send_address_claim() {
-  uint32_t id = j1939_make_id(0x00EE00, 0xFF); // PGN 60928, global
-  // Use Can0 for J1939
-  CAN_message_t msg;
-  msg.id = id;
+// Helper: Send J1939 Address Claim on the specified bus
+void j1939_send_address_claim(FlexCAN& bus, const uint8_t* name_bytes) {
+  CAN_message_t msg = {};  // zero-init clears flags.remote (rtr) to 0
+  msg.id  = j1939_pgn1_id(6, 0, 0xEE, 0xFF, J1939_STATIC_ADDRESS); // 0x18EEFF80
   msg.ext = 1;
   msg.len = 8;
-  for (int i = 0; i < 8; i++) msg.buf[i] = j1939_name_bytes[i];
-  Can0.write(msg);
+  for (int i = 0; i < 8; i++) msg.buf[i] = name_bytes[i];
+  noInterrupts(); bus.write(msg); interrupts();
 }
 
-// Helper: Check if CAN message is J1939 PGN 0x00EF00
-bool is_j1939_pgn_ef00(const CAN_message_t& msg) {
-  // Extract PGN from 29-bit ID
-  uint32_t pgn = (msg.id >> 8) & 0xFFFF;
-  pgn |= ((msg.id >> 16) & 0xFF) << 16;
-  return (pgn == J1939_PGN_PROPRIETARY_B);
+// Helper: Check if an incoming Address Claim targets our SA (contention)
+bool is_j1939_address_claim_for_our_sa(const CAN_message_t& msg) {
+  if (!msg.ext) return false;
+  uint8_t pf = (msg.id >> 16) & 0xFF;
+  uint8_t sa = msg.id & 0xFF;
+  return (pf == 0xEE && sa == J1939_STATIC_ADDRESS);
 }
 
-// Handle incoming J1939 proprietary command (PGN 0x00EF00)
-void handle_j1939_command(const CAN_message_t& msg) {
-  // Example: Byte 0 = setting index, Byte 1 = value (expand as needed)
-  if (msg.len < 2) return;
-  uint8_t setting = msg.buf[0];
-  int16_t value = msg.buf[1];
-  // Optionally, parse more bytes for multi-byte values
-  // Call same logic as serial command
-  setSetting(setting, value, DEBUG_ON);
-  Serial.printf("INFO: Setting %d updated to %d via CAN (PGN 0x00EF00)\n", setting, value);
+// Helper: Check if incoming message is a Request PGN for our address claim
+bool is_j1939_request_for_address_claim(const CAN_message_t& msg) {
+  if (!msg.ext) return false;
+  uint8_t pf = (msg.id >> 16) & 0xFF;
+  uint8_t ps = (msg.id >> 8) & 0xFF;
+  if (pf != 0xEA) return false;
+  if (ps != J1939_STATIC_ADDRESS && ps != 0xFF) return false;
+  if (msg.len < 3) return false;
+  return (msg.buf[0] == 0x00 && msg.buf[1] == 0xEE && msg.buf[2] == 0x00);
 }
+
+// Helper: Send "Cannot Claim Address" (SA = 0xFE, NAME = ours) on the specified bus
+void j1939_send_cannot_claim(FlexCAN& bus, const uint8_t* name_bytes) {
+  CAN_message_t msg = {};  // zero-init clears flags.remote (rtr) to 0
+  msg.id  = j1939_pgn1_id(6, 0, 0xEE, 0xFF, 0xFE); // 0x18EEFFFE
+  msg.ext = 1;
+  msg.len = 8;
+  for (int i = 0; i < 8; i++) msg.buf[i] = name_bytes[i];
+  noInterrupts(); bus.write(msg); interrupts();
+}
+
+// Helper: Returns true if msg is a J1939 Proprietary A (PF=0xEF) addressed to our SA or broadcast
+bool is_j1939_proprietary_a_for_us(const CAN_message_t& msg) {
+  if (!msg.ext) return false;
+  uint8_t pf = (msg.id >> 16) & 0xFF;
+  uint8_t da = (msg.id >>  8) & 0xFF;
+  uint8_t dp = (msg.id >> 24) & 0x01;
+  return (pf == 0xEF && dp == 0
+          && (da == J1939_STATIC_ADDRESS || da == 0xFF));
+}
+
+// Send a J1939 service response on the specified bus
+void j1939_send_service_response(FlexCAN& bus, uint8_t dest_sa, uint8_t setting_num,
+                                  int16_t value, uint8_t status) {
+  CAN_message_t msg = {};
+  msg.id  = j1939_pgn1_id(3, 0, 0xEF, dest_sa, J1939_STATIC_ADDRESS);
+  msg.ext = 1;
+  msg.len = 8;
+  msg.buf[0] = J1939_SVC_RESPONSE;
+  msg.buf[1] = setting_num;
+  msg.buf[2] = (uint8_t)(value & 0xFF);
+  msg.buf[3] = (uint8_t)((value >> 8) & 0xFF);
+  msg.buf[4] = status;
+  msg.buf[5] = msg.buf[6] = msg.buf[7] = 0xFF;
+  noInterrupts(); bus.write(msg); interrupts();
+}
+
+// Per-bus J1939 address claim state (must be declared before handle_j1939_service)
+struct J1939BusState {
+  bool address_claimed  = false;
+  bool address_failed   = false;
+  bool boot_claim_sent  = false;   // true after first claim is queued from loop()
+  elapsedMillis claim_timer;
+};
+J1939BusState j1939_can0;
+J1939BusState j1939_can1;
+
+// Handle incoming J1939 Proprietary A service request (PGN 0xEF00)
+// Responds to any valid request addressed to our SA (address claiming does not gate this).
+void handle_j1939_service(const CAN_message_t& msg, FlexCAN& bus) {
+  if (msg.len < 5) return;
+  uint8_t  cmd     = msg.buf[0];
+  uint8_t  setting = msg.buf[1];
+  int16_t  value   = (int16_t)(msg.buf[2] | ((uint16_t)msg.buf[3] << 8));
+  uint8_t  src_sa  = msg.id & 0xFF;   // requester's SA for the response
+
+  // Range check
+  if (setting < 1 || setting >= numSettings) {
+    j1939_send_service_response(bus, src_sa, setting, 0, J1939_SVC_OUT_OF_RANGE);
+    return;
+  }
+
+  if (cmd == J1939_SVC_SET_SETTING) {
+    int16_t result = setSetting(setting, value, DEBUG_ON);
+    j1939_send_service_response(bus, src_sa, setting, result, J1939_SVC_STATUS_OK);
+
+  } else if (cmd == J1939_SVC_GET_SETTING) {
+    int16_t result = setSetting(setting, -1, DEBUG_OFF);  // -1 = read-only
+    j1939_send_service_response(bus, src_sa, setting, result, J1939_SVC_STATUS_OK);
+  }
+}
+
+// Helper: Consolidates address-claim NM handling for one bus
+void j1939_handle_nm(const CAN_message_t& msg, FlexCAN& bus,
+                      J1939BusState& state, const uint8_t* name, uint64_t static_name) {
+  if (is_j1939_address_claim_for_our_sa(msg)) {
+    uint64_t their_name = 0;
+    for (int i = 7; i >= 0; i--) their_name = (their_name << 8) | msg.buf[i];
+    if (their_name < static_name) {
+      state.address_claimed = false;
+      state.address_failed  = true;
+      j1939_send_cannot_claim(bus, name);
+      Serial.printf("ERROR: J1939 address %d lost on bus (lower NAME).\n",
+                    J1939_STATIC_ADDRESS);
+    } else {
+      j1939_send_address_claim(bus, name);
+      state.claim_timer     = 0;
+      state.address_claimed = false;
+    }
+  }
+  if (is_j1939_request_for_address_claim(msg)) {
+    if (state.address_failed) j1939_send_cannot_claim(bus, name);
+    else                      j1939_send_address_claim(bus, name);
+  }
+}
+
+// Helper: boot claim + 250ms promotion + 2s retry (called every loop iteration)
+void j1939_update_ignition(FlexCAN& bus, J1939BusState& state,
+                             const uint8_t* name, uint8_t bus_num) {
+  // Send the initial claim on the very first loop() call (CAN bus fully stable by then)
+  if (!state.boot_claim_sent) {
+    j1939_send_address_claim(bus, name);
+    state.claim_timer    = 0;
+    state.boot_claim_sent = true;
+    Serial.printf("INFO: J1939 Can%d address claim sent at boot (Addr=0x%02X)\n",
+                  bus_num, J1939_STATIC_ADDRESS);
+    return;
+  }
+
+  if (state.address_claimed || state.address_failed) return;
+
+  // Retry every 2 s while unclaimed (e.g. bus not yet ready at boot)
+  if (state.claim_timer >= 2000) {
+    j1939_send_address_claim(bus, name);
+    state.claim_timer = 0;
+    return;
+  }
+
+  // Promote to confirmed-claimed 250 ms after last send with no contention
+  if (state.claim_timer >= 250) {
+    state.address_claimed = true;
+    Serial.printf("INFO: J1939 Can%d address 0x%02X claimed.\n",
+                  bus_num, J1939_STATIC_ADDRESS);
+  }
+}
+
 
 //softwareVersion
 String softwareVersion = "SSS2*REV" + revision + "*1.1*master*feaf4593b427b5ebe96f3d96ef746ec59d722ef9"; //Hash of the previous git commit
@@ -199,10 +332,7 @@ void setup() {
   commandString="1";
   setEnableComponentInfo();
   reloadCAN();
-
-  // J1939: Claim static address at boot
-  j1939_send_address_claim();
-  Serial.printf("INFO: J1939 static address claim sent (NAME=0x%016llX, Addr=%d)\n", (unsigned long long)J1939_STATIC_NAME, J1939_STATIC_ADDRESS);
+  // J1939 address claim is sent on the first loop() iteration via j1939_update_ignition()
 }
 
 void loop() {
@@ -216,10 +346,11 @@ void loop() {
     redLEDstate = !redLEDstate;
     digitalWrite(redLEDpin, redLEDstate);
 
-    // J1939: Check for proprietary command PGN 0x00EF00
-    if (is_j1939_pgn_ef00(rxmsg)) {
-      handle_j1939_command(rxmsg);
-    }
+    // J1939: NM handling always active (address claim is independent of ignition)
+    j1939_handle_nm(rxmsg, Can0, j1939_can0, j1939_name_can0, J1939_NAME_CAN0);
+
+    // J1939: Proprietary A service dispatcher — always-on, outside ignition gate
+    if (is_j1939_proprietary_a_for_us(rxmsg)) handle_j1939_service(rxmsg, Can0);
   }
   if (Can1.available()) {
     Can1.read(rxmsg);
@@ -230,6 +361,12 @@ void loop() {
       greenLEDstate = !greenLEDstate;
       digitalWrite(greenLEDpin, greenLEDstate);
     }
+
+    // J1939: NM handling always active (address claim is independent of ignition)
+    j1939_handle_nm(rxmsg, Can1, j1939_can1, j1939_name_can1, J1939_NAME_CAN1);
+
+    // J1939: Proprietary A service dispatcher — always-on, outside ignition gate
+    if (is_j1939_proprietary_a_for_us(rxmsg)) handle_j1939_service(rxmsg, Can1);
   }
   //!digitalRead(INTCANPin) &&
   if(displayCAN1)  // If low, read receive buffer
@@ -295,6 +432,10 @@ void loop() {
   }
 
   sendLINResponse();
+
+  // J1939: per-bus ignition edge detection and 250ms claim timer
+  j1939_update_ignition(Can0, j1939_can0, j1939_name_can0, 0);
+  if (CAN1Switch) j1939_update_ignition(Can1, j1939_can1, j1939_name_can1, 1);
 
   /****************************************************************/
   /*            Begin Serial Command Processing                   */
