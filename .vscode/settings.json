@@ -1,0 +1,11 @@
+{
+  "python.autoComplete.extraPaths": ["${workspaceFolder}/sources/poky/bitbake/lib", "${workspaceFolder}/sources/poky/meta/lib"],
+  "python.analysis.extraPaths": ["${workspaceFolder}/sources/poky/bitbake/lib", "${workspaceFolder}/sources/poky/meta/lib"],
+  "files.associations": {
+    "*.page-template": "vue",
+    "*.layout-template": "vue",
+    "*.vue": "vue",
+    "*.conf": "bitbake",
+    "*.inc": "bitbake"
+  }
+}
