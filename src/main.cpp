@@ -118,6 +118,8 @@ bool is_j1939_proprietary_a_for_us(const CAN_message_t& msg) {
           && (da == J1939_STATIC_ADDRESS || da == 0xFF));
 }
 
+
+
 // Send a J1939 service response on the specified bus
 void j1939_send_service_response(FlexCAN& bus, uint8_t dest_sa, uint8_t setting_num,
                                   int16_t value, uint8_t status) {
